@@ -37,16 +37,6 @@ public class CapacitorBluetoothSerialPlugin extends Plugin {
     private static final String TAG = "CapacitorBluetoothSerialPlugin";
     private static final BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
-
-    @PluginMethod
-    public void echo(PluginCall call) {
-        String value = call.getString("value");
-
-        JSObject ret = new JSObject();
-        ret.put("value", value);
-        call.resolve(ret);
-    }
-
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     @PluginMethod()
     public void listDevices(PluginCall call) {
@@ -61,26 +51,7 @@ public class CapacitorBluetoothSerialPlugin extends Plugin {
 
     }
 
-    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
-    private static JSObject deviceToJS(BluetoothDevice bluetoothDevice) {
-        JSObject o = new JSObject();
-        o.put("name", bluetoothDevice.getName());
-        o.put("address", bluetoothDevice.getAddress());
-        return o;
-    }
-
-    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
-    private static boolean hasSerial(BluetoothDevice bluetoothDevice) {
-        var uuids = bluetoothDevice.getUuids();
-        for (var uuid : uuids) {
-            if (uuid.getUuid().equals(SERIAL_PORT_PORFILE_UUID)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-
+    
     @PluginMethod
     public void checkAndRequestBluetoothPermission(PluginCall call) {
         // Check the current state of the "bluetooth" permission alias
@@ -110,6 +81,25 @@ public class CapacitorBluetoothSerialPlugin extends Plugin {
         } else {
             call.reject("bluetooth permission rejected");
         }
+    }
+
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    private static JSObject deviceToJS(BluetoothDevice bluetoothDevice) {
+        JSObject o = new JSObject();
+        o.put("name", bluetoothDevice.getName());
+        o.put("address", bluetoothDevice.getAddress());
+        return o;
+    }
+
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    private static boolean hasSerial(BluetoothDevice bluetoothDevice) {
+        var uuids = bluetoothDevice.getUuids();
+        for (var uuid : uuids) {
+            if (uuid.getUuid().equals(SERIAL_PORT_PORFILE_UUID)) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }
