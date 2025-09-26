@@ -17,7 +17,9 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -37,6 +39,8 @@ public class CapacitorBluetoothSerialPlugin extends Plugin {
     private static final String TAG = "CapacitorBluetoothSerialPlugin";
     private static final BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
+    private BluetoothDevice bluetoothDevice;
+
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     @PluginMethod()
     public void listDevices(PluginCall call) {
@@ -51,7 +55,44 @@ public class CapacitorBluetoothSerialPlugin extends Plugin {
 
     }
 
-    
+    @PluginMethod()
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    public void connect(PluginCall call) {
+        String address = call.getString("address");
+        if (address == null) {
+            call.reject("missing required parameter: address");
+            return;
+        }
+
+        Optional<BluetoothDevice> bluetoothDeviceOptional = bluetoothAdapter.getBondedDevices().stream()
+                .filter(CapacitorBluetoothSerialPlugin::hasSerial)
+                .filter(d-> d.getAddress() == address)
+                .findFirst();
+
+
+        if (bluetoothDeviceOptional.isPresent()) {
+            bluetoothDevice = bluetoothDeviceOptional.get();
+        } else {
+            call.reject("cannot find device with address " + address);
+            return;
+        }
+
+
+        try {
+            try (var socket = bluetoothDevice.createRfcommSocketToServiceRecord(SERIAL_PORT_PORFILE_UUID)) {
+                Log.i(TAG, "connecting...");
+                socket.connect();
+                Log.i(TAG, "connected");
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        } catch (IOException e) {
+            call.reject("ioexception in connect", e);
+        }
+    }
+
+
     @PluginMethod
     public void checkAndRequestBluetoothPermission(PluginCall call) {
         // Check the current state of the "bluetooth" permission alias

@@ -13,30 +13,16 @@ npx cap sync
 
 <docgen-index>
 
-* [`echo(...)`](#echo)
 * [`listDevices(...)`](#listdevices)
 * [`checkAndRequestBluetoothPermission(...)`](#checkandrequestbluetoothpermission)
+* [`connect(...)`](#connect)
+* [`registerListener(...)`](#registerlistener)
 * [Interfaces](#interfaces)
 
 </docgen-index>
 
 <docgen-api>
 <!--Update the source file JSDoc comments and rerun docgen to update the docs below-->
-
-### echo(...)
-
-```typescript
-echo(options: { value: string; }) => Promise<{ value: string; }>
-```
-
-| Param         | Type                            |
-| ------------- | ------------------------------- |
-| **`options`** | <code>{ value: string; }</code> |
-
-**Returns:** <code>Promise&lt;{ value: string; }&gt;</code>
-
---------------------
-
 
 ### listDevices(...)
 
@@ -62,6 +48,32 @@ checkAndRequestBluetoothPermission(options: void) => Promise<void>
 | Param         | Type              |
 | ------------- | ----------------- |
 | **`options`** | <code>void</code> |
+
+--------------------
+
+
+### connect(...)
+
+```typescript
+connect(options: { address: string; }) => Promise<void>
+```
+
+| Param         | Type                              |
+| ------------- | --------------------------------- |
+| **`options`** | <code>{ address: string; }</code> |
+
+--------------------
+
+
+### registerListener(...)
+
+```typescript
+registerListener(options: { onData: (data: [number]) => void; }) => Promise<void>
+```
+
+| Param         | Type                                                  |
+| ------------- | ----------------------------------------------------- |
+| **`options`** | <code>{ onData: (data: [number]) =&gt; void; }</code> |
 
 --------------------
 
