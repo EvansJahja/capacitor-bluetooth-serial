@@ -16,8 +16,10 @@ npx cap sync
 * [`listDevices(...)`](#listdevices)
 * [`checkAndRequestBluetoothPermission(...)`](#checkandrequestbluetoothpermission)
 * [`connect(...)`](#connect)
-* [`registerListener(...)`](#registerlistener)
+* [`watchData(...)`](#watchdata)
+* [`sendData(...)`](#senddata)
 * [Interfaces](#interfaces)
+* [Type Aliases](#type-aliases)
 
 </docgen-index>
 
@@ -29,6 +31,8 @@ npx cap sync
 ```typescript
 listDevices(options: void) => Promise<{ devices: Device[]; }>
 ```
+
+List available Bluetooth devices
 
 | Param         | Type              |
 | ------------- | ----------------- |
@@ -45,6 +49,8 @@ listDevices(options: void) => Promise<{ devices: Device[]; }>
 checkAndRequestBluetoothPermission(options: void) => Promise<void>
 ```
 
+Check and request Bluetooth permissions
+
 | Param         | Type              |
 | ------------- | ----------------- |
 | **`options`** | <code>void</code> |
@@ -58,6 +64,8 @@ checkAndRequestBluetoothPermission(options: void) => Promise<void>
 connect(options: { address: string; }) => Promise<void>
 ```
 
+Connect to a Bluetooth device
+
 | Param         | Type                              |
 | ------------- | --------------------------------- |
 | **`options`** | <code>{ address: string; }</code> |
@@ -65,15 +73,34 @@ connect(options: { address: string; }) => Promise<void>
 --------------------
 
 
-### registerListener(...)
+### watchData(...)
 
 ```typescript
-registerListener(options: { onData: (data: [number]) => void; }) => Promise<void>
+watchData(callback: WatchDataCallback) => Promise<CallbackID>
 ```
 
-| Param         | Type                                                  |
-| ------------- | ----------------------------------------------------- |
-| **`options`** | <code>{ onData: (data: [number]) =&gt; void; }</code> |
+Register a listener for incoming data
+
+| Param          | Type                                                            |
+| -------------- | --------------------------------------------------------------- |
+| **`callback`** | <code><a href="#watchdatacallback">WatchDataCallback</a></code> |
+
+**Returns:** <code>Promise&lt;string&gt;</code>
+
+--------------------
+
+
+### sendData(...)
+
+```typescript
+sendData(options: { data: number[]; }) => Promise<void>
+```
+
+Send data to the connected Bluetooth device
+
+| Param         | Type                             |
+| ------------- | -------------------------------- |
+| **`options`** | <code>{ data: number[]; }</code> |
 
 --------------------
 
@@ -87,5 +114,18 @@ registerListener(options: { onData: (data: [number]) => void; }) => Promise<void
 | ------------- | ------------------- |
 | **`name`**    | <code>string</code> |
 | **`address`** | <code>string</code> |
+
+
+### Type Aliases
+
+
+#### WatchDataCallback
+
+<code>(message: { data: [number]; } | null, err?: any): void</code>
+
+
+#### CallbackID
+
+<code>string</code>
 
 </docgen-api>

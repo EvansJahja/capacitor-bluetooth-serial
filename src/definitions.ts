@@ -20,7 +20,7 @@ export interface CapacitorBluetoothSerialPlugin {
    * Register a listener for incoming data
    * @param onData A callback function that receives incoming data as an array of bytes
    */
-  registerListener(options: {onData: (data: [number]) => void}): Promise<void>;
+  watchData(callback: WatchDataCallback): Promise<CallbackID>;
 
   /**
    * Send data to the connected Bluetooth device
@@ -28,6 +28,10 @@ export interface CapacitorBluetoothSerialPlugin {
    */
   sendData(options: {data: number[]}): Promise<void>;
 }
+
+export type CallbackID = string;
+
+export type WatchDataCallback = (message: {"data": [number]} | null, err?: any) => void;
 
 export interface Device {
   name: string;

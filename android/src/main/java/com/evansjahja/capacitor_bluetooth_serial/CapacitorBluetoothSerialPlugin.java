@@ -1,10 +1,14 @@
 package com.evansjahja.capacitor_bluetooth_serial;
 
+import static com.getcapacitor.PluginMethod.RETURN_CALLBACK;
+
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothSocket;
 import android.util.Log;
 
+import androidx.annotation.Nullable;
 import androidx.annotation.RequiresPermission;
 
 import com.getcapacitor.JSArray;
@@ -17,10 +21,17 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
 
+import org.json.JSONException;
+
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @CapacitorPlugin(name = "CapacitorBluetoothSerial",
@@ -39,6 +50,11 @@ public class CapacitorBluetoothSerialPlugin extends Plugin {
     private static final String TAG = "CapacitorBluetoothSerialPlugin";
     private static final BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
+    @Nullable PluginCall onDataCallback;
+    @Nullable Future<?> readerLoop;
+    @Nullable BluetoothSocket bluetoothSocket;
+
+    private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
     private BluetoothDevice bluetoothDevice;
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
@@ -66,7 +82,7 @@ public class CapacitorBluetoothSerialPlugin extends Plugin {
 
         Optional<BluetoothDevice> bluetoothDeviceOptional = bluetoothAdapter.getBondedDevices().stream()
                 .filter(CapacitorBluetoothSerialPlugin::hasSerial)
-                .filter(d-> d.getAddress() == address)
+                .filter(d-> d.getAddress().equalsIgnoreCase(address))
                 .findFirst();
 
 
@@ -79,18 +95,44 @@ public class CapacitorBluetoothSerialPlugin extends Plugin {
 
 
         try {
-            try (var socket = bluetoothDevice.createRfcommSocketToServiceRecord(SERIAL_PORT_PORFILE_UUID)) {
-                Log.i(TAG, "connecting...");
-                socket.connect();
-                Log.i(TAG, "connected");
-                Thread.sleep(5000);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+            bluetoothSocket = bluetoothDevice.createRfcommSocketToServiceRecord(SERIAL_PORT_PORFILE_UUID);
+            Log.i(TAG, "connecting...");
+            assert bluetoothSocket != null;
+            bluetoothSocket.connect();
+            Log.i(TAG, "connected");
+
+            executor.scheduleWithFixedDelay(this::readAvailableData, 0, 100, TimeUnit.MILLISECONDS);
+
+
         } catch (IOException e) {
             call.reject("ioexception in connect", e);
         }
     }
+
+    final int BUF_SIZE = 1024;
+    byte[] readBuf = new byte[BUF_SIZE];
+    void readAvailableData(){
+        if (bluetoothSocket == null || onDataCallback == null) {
+            return;
+        }
+        try {
+            var is = bluetoothSocket.getInputStream();
+            if (is.available() > 0) {
+                JSObject o = new JSObject();
+                int readCount =  is.read(readBuf, 0, Math.min(is.available(), BUF_SIZE));
+                var a = Arrays.copyOf(readBuf, readCount);
+
+                o.put("data", new JSArray(a));
+                onDataCallback.resolve(o);
+
+            }
+        } catch (IOException | JSONException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
+
 
 
     @PluginMethod
@@ -108,6 +150,12 @@ public class CapacitorBluetoothSerialPlugin extends Plugin {
 
         requestPermissionForAlias("bluetooth", call, "bluetoothPermsCallback");
 
+    }
+
+    @PluginMethod(returnType = RETURN_CALLBACK)
+    public void watchData(PluginCall call) {
+        call.setKeepAlive(true);
+        this.onDataCallback = call;
     }
 
 
