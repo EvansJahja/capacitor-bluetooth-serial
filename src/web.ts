@@ -1,51 +1,81 @@
 import type { CallbackID, CapacitorBluetoothSerialPlugin, Device, WatchDataCallback } from './definitions';
 
 export class CapacitorBluetoothSerialWeb implements CapacitorBluetoothSerialPlugin {
-    // Simulate a connected device
-    isConnected: boolean = false;
+    private port: any = null;
+    private onDataCallback: WatchDataCallback | null = null;
+    private reader: any = null;
 
-    onDataCallback: WatchDataCallback | null = null;
-    constructor() {
-        console.log('CapacitorBluetoothSerialWeb initialized');
-        (async () => {
-            while (true) {
-                if (this.isConnected) {
-                    // const data = [Math.floor(Math.random() * 256), Math.floor(Math.random() * 256)];
-                    const data = [0xF0, 0x03, 0x03, 0x00, 0x0A];
-                    this.onDataCallback && this.onDataCallback({"data": data as [number]});
-                }
-                // sleep
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-        })();
+    async listDevices(options: void): Promise<{ devices: Device[]; }> {
+        if (!('serial' in navigator)) {
+            throw new Error('WebSerial API not supported in this browser');
+        }
+        try {
+            this.port = await (navigator as any).serial.requestPort();
+            return {
+                devices: [{
+                    name: 'Selected Serial Port',
+                    address: 'selected'
+                }]
+            };
+        } catch (error) {
+            console.log(error);
+            throw new Error('User cancelled port selection or error occurred');
+        }
     }
+
+    async checkAndRequestBluetoothPermission(options: void): Promise<void> {
+        if (!('serial' in navigator)) {
+            throw new Error('WebSerial API not available');
+        }
+        // WebSerial doesn't require explicit permission request; availability check suffices
+        return Promise.resolve();
+    }
+
+    async connect(options: { address: string; }): Promise<void> {
+        if (options.address !== 'selected' || !this.port) {
+            throw new Error('No port selected or invalid address');
+        }
+        try {
+            await this.port.open({ baudRate: 9600 }); // Default baud rate; adjust as needed
+            this.startReading();
+        } catch (error) {
+            throw new Error('Failed to open serial port: ' + error);
+        }
+    }
+
     watchData(callback: WatchDataCallback): Promise<CallbackID> {
         this.onDataCallback = callback;
-        console.log(callback)
-        return Promise.resolve("web-callback-id");
+        return Promise.resolve('web-callback-id');
     }
 
-    sendData(options: { data: number[]; }): Promise<void> {
-        console.log("Sending data:", options.data);
-        return Promise.resolve();
+    async sendData(options: { data: number[]; }): Promise<void> {
+        if (!this.port || !this.port.writable) {
+            throw new Error('No open port to write to');
+        }
+        const writer = this.port.writable.getWriter();
+        try {
+            await writer.write(new Uint8Array(options.data));
+        } finally {
+            writer.releaseLock();
+        }
     }
 
-
-    listDevices(options: void): Promise<{ devices: Device[]; }> {
-        return Promise.resolve({ devices: [
-            { name: 'Device A', address: '00:11:22:33:44:55' },
-            { name: 'Device B', address: '66:77:88:99:AA:BB' },
-            { name: 'Device C', address: 'CC:DD:EE:FF:00:11' },
-        ] });
-    }
-    checkAndRequestBluetoothPermission(options: void): Promise<void> {
-        // throw new Error('Method not implemented.');
-        console.log("Checking and requesting Bluetooth permission (simulated)");
-        return Promise.resolve();
-    }
-    connect(options: { address: string; }): Promise<void> {
-        console.log("Connecting to device at address:", options.address);
-        this.isConnected = true;
-        return Promise.resolve();
+    private async startReading() {
+        if (!this.port || !this.port.readable || !this.onDataCallback) return;
+        this.reader = this.port.readable.getReader();
+        try {
+            while (true) {
+                const { value, done } = await this.reader.read();
+                if (done) break;
+                this.onDataCallback({ data: Array.from(value) as [number] });
+            }
+        } catch (error) {
+            console.error('Error reading from serial port:', error);
+        } finally {
+            if (this.reader) {
+                this.reader.releaseLock();
+            }
+            this.reader = null;
+        }
     }
 }
