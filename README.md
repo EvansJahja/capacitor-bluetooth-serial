@@ -1,6 +1,6 @@
 # capacitor-bluetooth-serial
 
-Bluetooth Serial
+Capacitor plugin for Bluetooth Serial communication
 
 ## Install
 
