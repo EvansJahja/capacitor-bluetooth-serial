@@ -10,7 +10,8 @@ export class CapacitorBluetoothSerialWeb implements CapacitorBluetoothSerialPlug
         (async () => {
             while (true) {
                 if (this.isConnected) {
-                    const data = [Math.floor(Math.random() * 256), Math.floor(Math.random() * 256)];
+                    // const data = [Math.floor(Math.random() * 256), Math.floor(Math.random() * 256)];
+                    const data = [0xF0, 0x03, 0x03, 0x00, 0x0A];
                     this.onDataCallback && this.onDataCallback({"data": data as [number]});
                 }
                 // sleep

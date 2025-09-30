@@ -152,6 +152,40 @@ public class CapacitorBluetoothSerialPlugin extends Plugin {
 
     }
 
+    @PluginMethod
+    public void sendData(PluginCall call) throws JSONException, IOException {
+        JSArray arr = call.getArray("data");
+        List<Integer> intDataToSend = arr.toList();
+        assert bluetoothSocket != null;
+        var os = bluetoothSocket.getOutputStream();
+
+        byte[] bytes = new byte[intDataToSend.size()];
+
+        for (int i=0; i< intDataToSend.size(); i++) {
+            bytes[i] = (byte) (int) (intDataToSend.get(i));
+        }
+
+        Log.i(TAG, "Would like to send " + bytesToHexString(bytes));
+
+        os.write(bytes);
+
+
+        call.resolve();
+
+
+    }
+
+    private static String bytesToHexString(byte[] bytes) {
+
+        StringBuilder hexString = new StringBuilder(bytes.length * 2);
+        for (byte b : bytes) {
+            // Converts the byte to an integer (0-255) and then formats it as a
+            // two-digit hexadecimal string, padding with a leading zero if necessary.
+            hexString.append(String.format("%02x", b));
+        }
+        return hexString.toString();
+    }
+
     @PluginMethod(returnType = RETURN_CALLBACK)
     public void watchData(PluginCall call) {
         call.setKeepAlive(true);
