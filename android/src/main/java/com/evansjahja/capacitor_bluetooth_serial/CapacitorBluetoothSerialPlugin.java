@@ -107,6 +107,7 @@ public class CapacitorBluetoothSerialPlugin extends Plugin {
         } catch (IOException e) {
             call.reject("ioexception in connect", e);
         }
+        call.resolve();
     }
 
     final int BUF_SIZE = 1024;
